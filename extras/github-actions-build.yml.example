@@ -1,0 +1,14 @@
+name: Build and test
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build
+      - run: cmake --build build --config Release
+      - run: ctest --test-dir build -C Release --output-on-failure
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SudokuStudio-Windows
+          path: build/Release/SudokuStudio.exe
