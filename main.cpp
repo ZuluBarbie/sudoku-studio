@@ -6,6 +6,7 @@
 #include <chrono>
 #include "engine.h"
 
+
 using namespace sudoku;
 struct State {Board board{};std::array<unsigned,81> notes{};};
 Puzzle puzzle; State state;std::vector<State> history;
@@ -39,7 +40,7 @@ void paint(HWND hwnd,HDC dc){RECT client;GetClientRect(hwnd,&client);palette();f
         if(p==selected)color=dark?RGB(44,102,100):RGB(171,224,214);
         fill(dc,box,color);
         if(state.board[p])label(dc,std::to_wstring(state.board[p]),box,28,puzzle.clues[p]?ink:accent,puzzle.clues[p]!=0,DT_CENTER|DT_VCENTER|DT_SINGLELINE);
-        else for(int n=1;n<=9;++n)if(state.notes[p]&(1u<<n)){RECT small{box.left+(n-1)%3*18,box.top+(n-1)/3*18,box.left+(n-1)%3*18+20,box.top+(n-1)/3*18+20};label(dc,std::to_wstring(n),small,12,muted,false,DT_CENTER|DT_VCENTER|DT_SINGLELINE);}
+        else for(int n=1;n<=9;++n)if(state.notes[p]&(1u<<n)){RECT noteRect{box.left+(n-1)%3*18,box.top+(n-1)/3*18,box.left+(n-1)%3*18+20,box.top+(n-1)/3*18+20};label(dc,std::to_wstring(n),noteRect,12,muted,false,DT_CENTER|DT_VCENTER|DT_SINGLELINE);}
     }
     for(int i=0;i<=9;++i){HPEN pen=CreatePen(PS_SOLID,i%3==0?2:1,dark?RGB(88,107,131):RGB(148,165,184));auto old=SelectObject(dc,pen);MoveToEx(dc,left+i*cell,top,nullptr);LineTo(dc,left+i*cell,top+9*cell);MoveToEx(dc,left,top+i*cell,nullptr);LineTo(dc,left+9*cell,top+i*cell);SelectObject(dc,old);DeleteObject(pen);}
     label(dc,L"YOUR NEXT MOVE",{568,132,798,162},15,accent,true);
@@ -67,15 +68,3 @@ case WM_COMMAND:{int id=LOWORD(wp);if(id==100&&HIWORD(wp)==CBN_SELCHANGE){diffic
     if(id==106)dark=!dark;SetFocus(hwnd);InvalidateRect(hwnd,nullptr,FALSE);return 0;}
 case WM_LBUTTONDOWN:{int x=GET_X_LPARAM(lp)-left,y=GET_Y_LPARAM(lp)-top;if(x>=0&&y>=0&&x<504&&y<504){selected=y/cell*9+x/cell;SetFocus(hwnd);InvalidateRect(hwnd,nullptr,FALSE);}return 0;}
 case WM_KEYDOWN:if(wp>='1'&&wp<='9')enter(int(wp-'0'));else if(wp>=VK_NUMPAD1&&wp<=VK_NUMPAD9)enter(int(wp-VK_NUMPAD0));else if(wp==VK_DELETE||wp==VK_BACK||wp=='0')enter(0);else if(wp=='N')noteMode=!noteMode;
-    else if(wp=='Z'&&(GetKeyState(VK_CONTROL)&0x8000))SendMessage(hwnd,WM_COMMAND,105,0);
-    else if(wp==VK_LEFT&&selected%9>0)--selected;else if(wp==VK_RIGHT&&selected%9<8)++selected;else if(wp==VK_UP&&selected>=9)selected-=9;else if(wp==VK_DOWN&&selected<72)selected+=9;
-    InvalidateRect(hwnd,nullptr,FALSE);return 0;
-case WM_TIMER:InvalidateRect(hwnd,nullptr,FALSE);return 0;
-case WM_ERASEBKGND:return 1;
-case WM_PAINT:{PAINTSTRUCT ps;HDC dc=BeginPaint(hwnd,&ps);RECT r;GetClientRect(hwnd,&r);HDC mem=CreateCompatibleDC(dc);HBITMAP bitmap=CreateCompatibleBitmap(dc,r.right,r.bottom);auto old=SelectObject(mem,bitmap);paint(hwnd,mem);BitBlt(dc,0,0,r.right,r.bottom,mem,0,0,SRCCOPY);SelectObject(mem,old);DeleteObject(bitmap);DeleteDC(mem);EndPaint(hwnd,&ps);return 0;}
-case WM_DESTROY:PostQuitMessage(0);return 0;
-}return DefWindowProcW(hwnd,msg,wp,lp);}
-int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR,int show){WNDCLASSW wc{};wc.lpfnWndProc=proc;wc.hInstance=instance;wc.lpszClassName=L"SudokuStudio";wc.hCursor=LoadCursor(nullptr,IDC_ARROW);wc.hIcon=LoadIcon(nullptr,IDI_APPLICATION);RegisterClassW(&wc);
-    RECT r{0,0,830,800};AdjustWindowRect(&r,WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX,FALSE);
-    HWND hwnd=CreateWindowW(wc.lpszClassName,L"Sudoku Studio",WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX,CW_USEDEFAULT,CW_USEDEFAULT,r.right-r.left,r.bottom-r.top,nullptr,nullptr,instance,nullptr);
-    if(!hwnd)return 1;ShowWindow(hwnd,show);MSG msg{};while(GetMessageW(&msg,nullptr,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}return int(msg.wParam);}
