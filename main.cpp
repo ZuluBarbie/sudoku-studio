@@ -6,7 +6,6 @@
 #include <chrono>
 #include "engine.h"
 
-
 using namespace sudoku;
 struct State {Board board{};std::array<unsigned,81> notes{};};
 Puzzle puzzle; State state;std::vector<State> history;
@@ -68,3 +67,15 @@ case WM_COMMAND:{int id=LOWORD(wp);if(id==100&&HIWORD(wp)==CBN_SELCHANGE){diffic
     if(id==106)dark=!dark;SetFocus(hwnd);InvalidateRect(hwnd,nullptr,FALSE);return 0;}
 case WM_LBUTTONDOWN:{int x=GET_X_LPARAM(lp)-left,y=GET_Y_LPARAM(lp)-top;if(x>=0&&y>=0&&x<504&&y<504){selected=y/cell*9+x/cell;SetFocus(hwnd);InvalidateRect(hwnd,nullptr,FALSE);}return 0;}
 case WM_KEYDOWN:if(wp>='1'&&wp<='9')enter(int(wp-'0'));else if(wp>=VK_NUMPAD1&&wp<=VK_NUMPAD9)enter(int(wp-VK_NUMPAD0));else if(wp==VK_DELETE||wp==VK_BACK||wp=='0')enter(0);else if(wp=='N')noteMode=!noteMode;
+    else if(wp=='Z'&&(GetKeyState(VK_CONTROL)&0x8000))SendMessage(hwnd,WM_COMMAND,105,0);
+    else if(wp==VK_LEFT&&selected%9>0)--selected;else if(wp==VK_RIGHT&&selected%9<8)++selected;else if(wp==VK_UP&&selected>=9)selected-=9;else if(wp==VK_DOWN&&selected<72)selected+=9;
+    InvalidateRect(hwnd,nullptr,FALSE);return 0;
+case WM_TIMER:InvalidateRect(hwnd,nullptr,FALSE);return 0;
+case WM_ERASEBKGND:return 1;
+case WM_PAINT:{PAINTSTRUCT ps;HDC dc=BeginPaint(hwnd,&ps);RECT r;GetClientRect(hwnd,&r);HDC mem=CreateCompatibleDC(dc);HBITMAP bitmap=CreateCompatibleBitmap(dc,r.right,r.bottom);auto old=SelectObject(mem,bitmap);paint(hwnd,mem);BitBlt(dc,0,0,r.right,r.bottom,mem,0,0,SRCCOPY);SelectObject(mem,old);DeleteObject(bitmap);DeleteDC(mem);EndPaint(hwnd,&ps);return 0;}
+case WM_DESTROY:PostQuitMessage(0);return 0;
+}return DefWindowProcW(hwnd,msg,wp,lp);}
+int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR,int show){WNDCLASSW wc{};wc.lpfnWndProc=proc;wc.hInstance=instance;wc.lpszClassName=L"SudokuStudio";wc.hCursor=LoadCursor(nullptr,IDC_ARROW);wc.hIcon=LoadIcon(nullptr,IDI_APPLICATION);RegisterClassW(&wc);
+    RECT r{0,0,830,800};AdjustWindowRect(&r,WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX,FALSE);
+    HWND hwnd=CreateWindowW(wc.lpszClassName,L"Sudoku Studio",WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX,CW_USEDEFAULT,CW_USEDEFAULT,r.right-r.left,r.bottom-r.top,nullptr,nullptr,instance,nullptr);
+    if(!hwnd)return 1;ShowWindow(hwnd,show);MSG msg{};while(GetMessageW(&msg,nullptr,0,0)>0){TranslateMessage(&msg);DispatchMessageW(&msg);}return int(msg.wParam);}
